@@ -1,0 +1,38 @@
+
+services:
+  sporeserver:
+    build: .
+    container_name: spore-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__SporeServerContextConnection: "Server=mariadb;Port=3306;Database=${DATABASE};User=${DB_USER};Password=${DB_PASSWORD}"
+      AppSettings__AdminUserId: ${ADMIN_USER_ID}
+      AppSettings__AdminUserEmail: ${ADMIN_USER_EMAIL}
+      AppSettings__AdminUserName: ${ADMIN_USER_NAME}
+      AppSettings__AdminUserPassword: ${ADMIN_USER_PASSWORD}
+      AppSettings__DisableRegistration: ${DISABLE_REGISTRATION}
+    volumes:
+      - ./static:/app/wwwroot/static
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  mariadb:
+    image: mariadb:11.4
+    container_name: spore-server-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DATABASE}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - ./mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
